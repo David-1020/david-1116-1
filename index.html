@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品搜尋</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%;
+            margin: 10px auto 0;
+            gap: 10px;
+        }
+
+        input[type="text"],
+        button {
+            width: 100%;
+            max-width: 500px;
+            padding: 15px 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            word-wrap: break-word;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="title">商品搜尋</h1>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="輸入商品名稱或編號" oninput="filterResults()">
+        <button onclick="clearSearch()">清空搜尋框</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        let productData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const jsonFilePath = './latest.json';
+            
+            // 取得 JSON 檔案
+            fetch(jsonFilePath)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`無法載入 JSON: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 檢查 JSON 是否包含 lastUpdated 和 products 欄位
+                    if (!data.lastUpdated || !data.products) {
+                        throw new Error("JSON 格式錯誤：缺少 lastUpdated 或 products 欄位");
+                    }
+
+                    console.log("成功載入商品資料:", data);
+
+                    // 更新標題顯示 JSON 中的 lastUpdated 時間戳記
+                    const lastUpdated = new Date(data.lastUpdated);
+                    updateTitleWithTime(lastUpdated);
+
+                    productData = data.products;
+                })
+                .catch(error => {
+                    document.body.innerHTML = `<p>載入錯誤：${error.message}</p>`;
+                    console.error("載入 JSON 時發生錯誤:", error);
+                });
+        });
+
+        function updateTitleWithTime(date) {
+            // 格式化時間為 MMDDHHMM 格式
+            const formattedTime = `${date.getMonth() + 1}${String(date.getDate()).padStart(2, '0')}${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`;
+            document.getElementById("title").textContent = `商品搜尋${formattedTime}`;
+        }
+
+        function filterResults() {
+    const query = document.getElementById("searchInput").value.toLowerCase().trim();
+    if (query === "") {
+        document.getElementById("results").innerHTML = "";
+        return;
+    }
+
+    const filteredResults = productData.filter(item =>
+        (item["商品名稱"] && item["商品名稱"].toLowerCase().includes(query)) ||
+        (item["商品編號"] && item["商品編號"].includes(query)) ||
+        (item["儲位"] && item["儲位"].toLowerCase().includes(query)) ||
+        (item["備註"] && item["備註"].toLowerCase().includes(query))
+    );
+
+    console.log("搜尋結果:", filteredResults);
+    displayResults(filteredResults);
+}
+
+function displayResults(results) {
+    if (results.length === 0) {
+        document.getElementById("results").innerHTML = "<p>找不到符合條件的商品。</p>";
+        return;
+    }
+
+    let table = "<table><tr><th>儲位</th><th>商品編號</th><th>商品名稱</th><th>電腦現存量</th><th>備註</th></tr>";
+    results.forEach(item => {
+        table += `
+            <tr>
+                <td>${item["儲位"] || ""}</td>
+                <td>${item["商品編號"]}</td>
+                <td>${item["商品名稱"]}</td>
+                <td>${item["電腦現存量"]}</td>
+                <td>${item["備註"] || ""}</td>
+            </tr>`;
+    });
+    table += "</table>";
+
+    document.getElementById("results").innerHTML = table;
+}
+
+
+        function clearSearch() {
+            document.getElementById("searchInput").value = "";
+            document.getElementById("results").innerHTML = "";
+        }
+    </script>
+
+</body>
+</html>
