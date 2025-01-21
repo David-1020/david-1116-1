@@ -87,7 +87,8 @@
         <input type="text" id="searchInput" placeholder="輸入商品名稱或編號" oninput="filterResults()">
         <div class="button-group">
             <button onclick="clearSearch()">清空搜尋框</button>
-            <button id="showMarkedButton">列出所有標記</button>
+            <button id="showMarkedButton">列出</button>
+            <button id="clearMarkedButton">取消</button>
         </div>
     </div>
 
@@ -199,6 +200,15 @@
             tableHTML += "</table>";
 
             document.getElementById("markedTableContainer").innerHTML = tableHTML;
+        });
+
+        document.getElementById("clearMarkedButton").addEventListener("click", () => {
+            // 清除標記的表格
+            document.getElementById("markedTableContainer").innerHTML = "";
+            // 取消所有被標記的行
+            const rows = document.querySelectorAll("tr.selected");
+            rows.forEach(row => row.classList.remove("selected"));
+            markedRows.length = 0; // 清空陣列
         });
     </script>
 
