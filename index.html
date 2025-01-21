@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>商品搜尋</title>
+    <title>庫存</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,6 +24,12 @@
             align-items: center;
             width: 90%;
             margin: 10px auto 0;
+            gap: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
             gap: 10px;
         }
 
@@ -65,21 +71,30 @@
             background-color: #007bff;
             color: white;
         }
+
+        tr.selected {
+            background-color: lightblue;
+        }
     </style>
 </head>
 <body>
 
-    <h1 id="title">商品搜尋</h1>
+    <h1 id="title">庫存</h1>
 
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="輸入商品名稱或編號" oninput="filterResults()">
-        <button onclick="clearSearch()">清空搜尋框</button>
+        <div class="button-group">
+            <button onclick="clearSearch()">清空搜尋框</button>
+            <button id="showMarkedButton">列出所有標記</button>
+        </div>
     </div>
 
     <div id="results"></div>
+    <div id="markedTableContainer"></div>
 
     <script>
         let productData = [];
+        const markedRows = []; // 儲存被標記的商品
 
         document.addEventListener('DOMContentLoaded', () => {
             const jsonFilePath = './latest.json';
@@ -93,17 +108,12 @@
                     return response.json();
                 })
                 .then(data => {
-                    // 檢查 JSON 是否包含 lastUpdated 和 products 欄位
                     if (!data.lastUpdated || !data.products) {
                         throw new Error("JSON 格式錯誤：缺少 lastUpdated 或 products 欄位");
                     }
 
-                    console.log("成功載入商品資料:", data);
-
-                    // 更新標題顯示 JSON 中的 lastUpdated 時間戳記
                     const lastUpdated = new Date(data.lastUpdated);
                     updateTitleWithTime(lastUpdated);
-
                     productData = data.products;
                 })
                 .catch(error => {
@@ -113,56 +123,81 @@
         });
 
         function updateTitleWithTime(date) {
-            // 格式化時間為 MMDDHHMM 格式
-            const formattedTime = `${date.getMonth() + 1}${String(date.getDate()).padStart(2, '0')}${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`;
-            document.getElementById("title").textContent = `商品搜尋${formattedTime}`;
+            const formattedTime = `${date.getMonth() + 1}月${date.getDate()}號 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+            document.getElementById("title").textContent = `庫存 ${formattedTime}`;
         }
 
         function filterResults() {
-    const query = document.getElementById("searchInput").value.toLowerCase().trim();
-    if (query === "") {
-        document.getElementById("results").innerHTML = "";
-        return;
-    }
+            const query = document.getElementById("searchInput").value.toLowerCase().trim();
+            if (query === "") {
+                document.getElementById("results").innerHTML = "";
+                return;
+            }
 
-    const filteredResults = productData.filter(item =>
-        (item["商品名稱"] && item["商品名稱"].toLowerCase().includes(query)) ||
-        (item["商品編號"] && item["商品編號"].includes(query)) ||
-        (item["儲位"] && item["儲位"].toLowerCase().includes(query)) ||
-        (item["備註"] && item["備註"].toLowerCase().includes(query))
-    );
+            const filteredResults = productData.filter(item =>
+                (item["商品名稱"] && item["商品名稱"].toLowerCase().includes(query)) ||
+                (item["商品編號"] && item["商品編號"].includes(query)) ||
+                (item["備註"] && item["備註"].toLowerCase().includes(query))
+            );
 
-    console.log("搜尋結果:", filteredResults);
-    displayResults(filteredResults);
-}
+            displayResults(filteredResults);
+        }
 
-function displayResults(results) {
-    if (results.length === 0) {
-        document.getElementById("results").innerHTML = "<p>找不到符合條件的商品。</p>";
-        return;
-    }
+        function displayResults(results) {
+            if (results.length === 0) {
+                document.getElementById("results").innerHTML = "<p>找不到符合條件的商品。</p>";
+                return;
+            }
 
-    let table = "<table><tr><th>儲位</th><th>商品編號</th><th>商品名稱</th><th>電腦現存量</th><th>備註</th></tr>";
-    results.forEach(item => {
-        table += `
-            <tr>
-                <td>${item["儲位"] || ""}</td>
-                <td>${item["商品編號"]}</td>
-                <td>${item["商品名稱"]}</td>
-                <td>${item["電腦現存量"]}</td>
-                <td>${item["備註"] || ""}</td>
-            </tr>`;
-    });
-    table += "</table>";
-
-    document.getElementById("results").innerHTML = table;
-}
-
+            let table = "<table><tr><th>商品編號</th><th>商品名稱</th><th>電腦現存量</th><th>備註</th><th>箱入數</th></tr>";
+            results.forEach(item => {
+                table += `
+                    <tr onclick="toggleMarkRow(this)">
+                        <td>${item["商品編號"]}</td>
+                        <td>${item["商品名稱"]}</td>
+                        <td>${item["電腦現存量"]}</td>
+                        <td>${item["備註"] || ""}</td>
+                        <td>${item["箱入數"] || ""}</td>
+                    </tr>`;
+            });
+            table += "</table>";
+            document.getElementById("results").innerHTML = table;
+        }
 
         function clearSearch() {
             document.getElementById("searchInput").value = "";
             document.getElementById("results").innerHTML = "";
         }
+
+        function toggleMarkRow(row) {
+            row.classList.toggle("selected");
+            const rowText = row.innerText.trim();
+            if (row.classList.contains("selected")) {
+                if (!markedRows.includes(rowText)) {
+                    markedRows.push(rowText);
+                }
+            } else {
+                const index = markedRows.indexOf(rowText);
+                if (index > -1) {
+                    markedRows.splice(index, 1);
+                }
+            }
+        }
+
+        document.getElementById("showMarkedButton").addEventListener("click", () => {
+            if (markedRows.length === 0) {
+                document.getElementById("markedTableContainer").innerHTML = "<p>目前沒有標記任何商品。</p>";
+                return;
+            }
+
+            let tableHTML = "<table><tr><th>標記的商品</th></tr>";
+            markedRows.forEach(item => {
+                tableHTML += `<tr><td>${item}</td></tr>`;
+            });
+            tableHTML += "</table>";
+
+            document.getElementById("markedTableContainer").innerHTML = tableHTML;
+        });
     </script>
 
 </body>
