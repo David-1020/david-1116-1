@@ -29,19 +29,23 @@
 
         .button-group {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             gap: 10px;
+            width: 100%;
+            max-width: 500px;
         }
 
         input[type="text"],
         button {
-            width: 100%;
-            max-width: 500px;
             padding: 10px;
             border-radius: 3px;
             border: 1px solid #ddd;
             box-sizing: border-box;
             font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
         }
 
         button {
@@ -54,6 +58,15 @@
 
         button:hover {
             background-color: #0056b3;
+        }
+
+        .clear-search {
+            flex: 1.4;
+        }
+
+        .show-marked,
+        .clear-marked {
+            flex: 1;
         }
 
         table {
@@ -86,9 +99,9 @@
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="輸入商品名稱或編號" oninput="filterResults()">
         <div class="button-group">
-            <button onclick="clearSearch()">清空搜尋框</button>
-            <button id="showMarkedButton">列出</button>
-            <button id="clearMarkedButton">取消</button>
+            <button class="clear-search" onclick="clearSearch()">清空搜尋框</button>
+            <button class="show-marked" id="showMarkedButton">列出</button>
+            <button class="clear-marked" id="clearMarkedButton">取消</button>
         </div>
     </div>
 
