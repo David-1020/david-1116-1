@@ -37,10 +37,11 @@
         button {
             width: 100%;
             max-width: 500px;
-            padding: 15px 10px;
-            border-radius: 5px;
+            padding: 10px;
+            border-radius: 3px;
             border: 1px solid #ddd;
             box-sizing: border-box;
+            font-size: 14px;
         }
 
         button {
@@ -48,6 +49,7 @@
             color: white;
             border: none;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
         button:hover {
@@ -89,8 +91,8 @@
         </div>
     </div>
 
-    <div id="results"></div>
     <div id="markedTableContainer"></div>
+    <div id="results"></div>
 
     <script>
         let productData = [];
@@ -171,13 +173,13 @@
 
         function toggleMarkRow(row) {
             row.classList.toggle("selected");
-            const rowText = row.innerText.trim();
+            const rowData = Array.from(row.children).map(cell => cell.textContent.trim());
             if (row.classList.contains("selected")) {
-                if (!markedRows.includes(rowText)) {
-                    markedRows.push(rowText);
+                if (!markedRows.some(r => JSON.stringify(r) === JSON.stringify(rowData))) {
+                    markedRows.push(rowData);
                 }
             } else {
-                const index = markedRows.indexOf(rowText);
+                const index = markedRows.findIndex(r => JSON.stringify(r) === JSON.stringify(rowData));
                 if (index > -1) {
                     markedRows.splice(index, 1);
                 }
@@ -190,9 +192,9 @@
                 return;
             }
 
-            let tableHTML = "<table><tr><th>標記的商品</th></tr>";
-            markedRows.forEach(item => {
-                tableHTML += `<tr><td>${item}</td></tr>`;
+            let tableHTML = "<table><tr><th>商品編號</th><th>商品名稱</th><th>電腦現存量</th><th>備註</th><th>箱入數</th></tr>";
+            markedRows.forEach(row => {
+                tableHTML += `<tr>${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`;
             });
             tableHTML += "</table>";
 
