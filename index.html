@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -90,6 +91,26 @@
         tr.selected {
             background-color: lightblue;
         }
+
+        /* 排序三角形 */
+        th.sortable {
+            cursor: pointer;
+            position: relative;
+        }
+
+        th.sortable .sort-icon {
+            position: absolute;
+            right: 10px;
+            font-size: 12px;
+        }
+
+        th.sortable.asc .sort-icon::before {
+            content: "▲";
+        }
+
+        th.sortable.desc .sort-icon::before {
+            content: "▼";
+        }
     </style>
 </head>
 <body>
@@ -99,9 +120,9 @@
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="輸入商品名稱或編號" oninput="filterResults()">
         <div class="button-group">
-            <button class="clear-search" onclick="clearSearch()">清空搜尋框</button>
             <button class="show-marked" id="showMarkedButton">列出</button>
             <button class="clear-marked" id="clearMarkedButton">取消</button>
+            <button class="clear-search" onclick="clearSearch()">清空搜尋框</button>
         </div>
     </div>
 
@@ -165,7 +186,15 @@
                 return;
             }
 
-            let table = "<table><tr><th>商品編號</th><th>商品名稱</th><th>電腦現存量</th><th>備註</th><th>箱入數</th></tr>";
+            let table = `
+                <table>
+                    <tr>
+                        <th>商品編號</th>
+                        <th>商品名稱</th>
+                        <th class="sortable" onclick="sortTable('電腦現存量')">電腦現存量<span class="sort-icon"></span></th>
+                        <th>備註</th>
+                        <th>箱入數</th>
+                    </tr>`;
             results.forEach(item => {
                 table += `
                     <tr onclick="toggleMarkRow(this)">
@@ -223,6 +252,22 @@
             rows.forEach(row => row.classList.remove("selected"));
             markedRows.length = 0; // 清空陣列
         });
+
+        function sortTable(key) {
+            const table = document.querySelector("#results table");
+            const rows = Array.from(table.querySelectorAll("tr:not(:first-child)"));
+            const header = table.querySelector(`th.sortable`);
+            const isAscending = !header.classList.contains("asc");
+            header.classList.toggle("asc", isAscending);
+            header.classList.toggle("desc", !isAscending);
+
+            rows.sort((rowA, rowB) => {
+                const cellA = parseFloat(rowA.children[2].textContent) || 0;
+                const cellB = parseFloat(rowB.children[2].textContent) || 0;
+                return isAscending ? cellA - cellB : cellB - cellA;
+            });
+            rows.forEach(row => table.appendChild(row));
+        }
     </script>
 
 </body>
