@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,14 +27,6 @@
             gap: 10px;
         }
 
-        .button-group {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            width: 100%;
-            max-width: 500px;
-        }
-
         input[type="text"],
         button {
             padding: 10px;
@@ -61,15 +52,6 @@
             background-color: #0056b3;
         }
 
-        .clear-search {
-            flex: 1.4;
-        }
-
-        .show-marked,
-        .clear-marked {
-            flex: 1;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -87,30 +69,6 @@
             background-color: #007bff;
             color: white;
         }
-
-        tr.selected {
-            background-color: lightblue;
-        }
-
-        /* 排序三角形 */
-        th.sortable {
-            cursor: pointer;
-            position: relative;
-        }
-
-        th.sortable .sort-icon {
-            position: absolute;
-            right: 10px;
-            font-size: 12px;
-        }
-
-        th.sortable.asc .sort-icon::before {
-            content: "▲";
-        }
-
-        th.sortable.desc .sort-icon::before {
-            content: "▼";
-        }
     </style>
 </head>
 <body>
@@ -118,65 +76,46 @@
     <h1 id="title">庫存</h1>
 
     <div class="search-container">
-        <input type="text" id="searchInput" placeholder="輸入商品名稱或編號" oninput="filterResults()">
-        <div class="button-group">
-            <button class="show-marked" id="showMarkedButton">列出</button>
-            <button class="clear-marked" id="clearMarkedButton">取消</button>
-            <button class="clear-search" onclick="clearSearch()">清空搜尋框</button>
-        </div>
+        <input type="text" id="searchInput" placeholder="輸入商品名稱或編號">
     </div>
 
-    <div id="markedTableContainer"></div>
     <div id="results"></div>
 
     <script>
         let productData = [];
-        const markedRows = []; // 儲存被標記的商品
+        let isTableDisplayed = false;
 
         document.addEventListener('DOMContentLoaded', () => {
-            const jsonFilePath = './latest.json';
-            
-            // 取得 JSON 檔案
-            fetch(jsonFilePath)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`無法載入 JSON: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
+            fetch('./latest.json')
+                .then(response => response.json())
                 .then(data => {
-                    if (!data.lastUpdated || !data.products) {
-                        throw new Error("JSON 格式錯誤：缺少 lastUpdated 或 products 欄位");
-                    }
-
-                    const lastUpdated = new Date(data.lastUpdated);
-                    updateTitleWithTime(lastUpdated);
                     productData = data.products;
                 })
-                .catch(error => {
-                    document.body.innerHTML = `<p>載入錯誤：${error.message}</p>`;
-                    console.error("載入 JSON 時發生錯誤:", error);
-                });
+                .catch(error => console.error('載入 JSON 錯誤:', error));
         });
 
-        function updateTitleWithTime(date) {
-            const formattedTime = `${date.getMonth() + 1}月${date.getDate()}號 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-            document.getElementById("title").textContent = `庫存 ${formattedTime}`;
-        }
-
-        function filterResults() {
-            const query = document.getElementById("searchInput").value.toLowerCase().trim();
-            if (query === "") {
-                document.getElementById("results").innerHTML = "";
-                return;
+        document.getElementById("searchInput").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                const query = this.value.trim();
+                if (query === "") {
+                    if (isTableDisplayed) {
+                        document.getElementById("results").innerHTML = "";
+                        isTableDisplayed = false;
+                    } else {
+                        displayResults(productData);
+                        isTableDisplayed = true;
+                    }
+                } else {
+                    filterResults(query);
+                }
             }
+        });
 
+        function filterResults(query) {
             const filteredResults = productData.filter(item =>
-                (item["商品名稱"] && item["商品名稱"].toLowerCase().includes(query)) ||
-                (item["商品編號"] && item["商品編號"].includes(query)) ||
-                (item["備註"] && item["備註"].toLowerCase().includes(query))
+                (item["商品名稱"] && item["商品名稱"].toLowerCase().includes(query.toLowerCase())) ||
+                (item["商品編號"] && item["商品編號"].includes(query))
             );
-
             displayResults(filteredResults);
         }
 
@@ -186,87 +125,12 @@
                 return;
             }
 
-            let table = `
-                <table>
-                    <tr>
-                        <th>商品編號</th>
-                        <th>商品名稱</th>
-                        <th class="sortable" onclick="sortTable('電腦現存量')">電腦現存量<span class="sort-icon"></span></th>
-                        <th>備註</th>
-                        <th>箱入數</th>
-                    </tr>`;
+            let table = "<table><tr><th>商品編號</th><th>商品名稱</th><th>電腦現存量</th><th>備註</th><th>箱入數</th></tr>";
             results.forEach(item => {
-                table += `
-                    <tr onclick="toggleMarkRow(this)">
-                        <td>${item["商品編號"]}</td>
-                        <td>${item["商品名稱"]}</td>
-                        <td>${item["電腦現存量"]}</td>
-                        <td>${item["備註"] || ""}</td>
-                        <td>${item["箱入數"] || ""}</td>
-                    </tr>`;
+                table += `<tr><td>${item["商品編號"]}</td><td>${item["商品名稱"]}</td><td>${item["電腦現存量"]}</td><td>${item["備註"] || ""}</td><td>${item["箱入數"] || ""}</td></tr>`;
             });
             table += "</table>";
             document.getElementById("results").innerHTML = table;
-        }
-
-        function clearSearch() {
-            document.getElementById("searchInput").value = "";
-            document.getElementById("results").innerHTML = "";
-        }
-
-        function toggleMarkRow(row) {
-            row.classList.toggle("selected");
-            const rowData = Array.from(row.children).map(cell => cell.textContent.trim());
-            if (row.classList.contains("selected")) {
-                if (!markedRows.some(r => JSON.stringify(r) === JSON.stringify(rowData))) {
-                    markedRows.push(rowData);
-                }
-            } else {
-                const index = markedRows.findIndex(r => JSON.stringify(r) === JSON.stringify(rowData));
-                if (index > -1) {
-                    markedRows.splice(index, 1);
-                }
-            }
-        }
-
-        document.getElementById("showMarkedButton").addEventListener("click", () => {
-            if (markedRows.length === 0) {
-                document.getElementById("markedTableContainer").innerHTML = "<p>目前沒有標記任何商品。</p>";
-                return;
-            }
-
-            let tableHTML = "<table><tr><th>商品編號</th><th>商品名稱</th><th>電腦現存量</th><th>備註</th><th>箱入數</th></tr>";
-            markedRows.forEach(row => {
-                tableHTML += `<tr>${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`;
-            });
-            tableHTML += "</table>";
-
-            document.getElementById("markedTableContainer").innerHTML = tableHTML;
-        });
-
-        document.getElementById("clearMarkedButton").addEventListener("click", () => {
-            // 清除標記的表格
-            document.getElementById("markedTableContainer").innerHTML = "";
-            // 取消所有被標記的行
-            const rows = document.querySelectorAll("tr.selected");
-            rows.forEach(row => row.classList.remove("selected"));
-            markedRows.length = 0; // 清空陣列
-        });
-
-        function sortTable(key) {
-            const table = document.querySelector("#results table");
-            const rows = Array.from(table.querySelectorAll("tr:not(:first-child)"));
-            const header = table.querySelector(`th.sortable`);
-            const isAscending = !header.classList.contains("asc");
-            header.classList.toggle("asc", isAscending);
-            header.classList.toggle("desc", !isAscending);
-
-            rows.sort((rowA, rowB) => {
-                const cellA = parseFloat(rowA.children[2].textContent) || 0;
-                const cellB = parseFloat(rowB.children[2].textContent) || 0;
-                return isAscending ? cellA - cellB : cellB - cellA;
-            });
-            rows.forEach(row => table.appendChild(row));
         }
     </script>
 
